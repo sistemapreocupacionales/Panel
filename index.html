@@ -8,79 +8,198 @@
 </head>
 <body>
 
-  <header class="topbar">
-    <div class="topbar-inner">
+  <!-- ======================= LOGIN ======================= -->
+  <section id="vista-login" class="login-wrap">
+    <form id="form-login" class="login-card">
       <span class="tab-mark" aria-hidden="true"></span>
-      <div class="brand">
-        <span class="brand-eyebrow">Establecimiento médico</span>
-        <h1>Estudios Preocupacionales</h1>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap">
-
-    <!-- PASO 1: BUSCAR / CREAR PACIENTE -->
-    <section class="card" id="card-paciente">
-      <h2><span class="step-num">1</span> Datos del paciente</h2>
-
-      <div class="field-row">
-        <div class="field">
-          <label for="dni">DNI</label>
-          <input id="dni" type="text" inputmode="numeric" placeholder="Ej: 30123456" autocomplete="off">
-        </div>
-        <button id="btn-buscar" class="btn btn-secondary">Buscar</button>
-      </div>
-
-      <div id="estado-busqueda" class="hint"></div>
-
-      <div class="field-row" id="datos-nombre" hidden>
-        <div class="field">
-          <label for="nombre">Nombre</label>
-          <input id="nombre" type="text" placeholder="Nombre">
-        </div>
-        <div class="field">
-          <label for="apellido">Apellido</label>
-          <input id="apellido" type="text" placeholder="Apellido">
-        </div>
-      </div>
-
-      <div id="checklist" class="checklist" hidden></div>
-    </section>
-
-    <!-- PASO 2: CARGAR SERVICIO -->
-    <section class="card" id="card-servicio" hidden>
-      <h2><span class="step-num">2</span> Cargar estudio</h2>
-
+      <span class="brand-eyebrow">Establecimiento médico</span>
+      <h1>Estudios Preocupacionales</h1>
       <div class="field">
-        <label for="servicio">Servicio</label>
-        <select id="servicio"></select>
+        <label for="login-usuario">Usuario</label>
+        <input id="login-usuario" type="text" autocomplete="username" required>
       </div>
-
       <div class="field">
-        <label for="observaciones">Observaciones</label>
-        <textarea id="observaciones" rows="4" placeholder="Resultado, notas, aclaraciones del estudio..."></textarea>
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
       </div>
+      <button type="submit" class="btn btn-primary" id="btn-login">Ingresar</button>
+      <div id="estado-login" class="hint"></div>
+    </form>
+  </section>
 
-      <div class="field">
-        <label for="imagen">Imagen del estudio (JPG)</label>
-        <input id="imagen" type="file" accept="image/jpeg,image/jpg">
-        <img id="preview" class="preview" hidden alt="Vista previa de la imagen cargada">
+  <!-- ======================= APP ======================= -->
+  <div id="app" hidden>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <span class="tab-mark" aria-hidden="true"></span>
+        <div class="brand">
+          <span class="brand-eyebrow">Establecimiento médico</span>
+          <h1>Estudios Preocupacionales</h1>
+        </div>
+        <div class="user-box">
+          <div class="user-info">
+            <strong id="user-nombre">-</strong>
+            <span id="user-especialidad">-</span>
+          </div>
+          <button id="btn-logout" class="btn btn-ghost">Salir</button>
+        </div>
       </div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-vista="cargar">Cargar / Editar</button>
+        <button class="tab-btn" data-vista="pacientes">Pacientes</button>
+        <button class="tab-btn" data-vista="empresa">Por empresa</button>
+        <button class="tab-btn" data-vista="usuarios" id="tab-usuarios" hidden>Usuarios</button>
+      </nav>
+    </header>
 
-      <button id="btn-guardar" class="btn btn-primary">Guardar estudio</button>
-      <div id="estado-guardar" class="hint"></div>
-    </section>
+    <main class="wrap">
 
-    <!-- PASO 3: GENERAR PDF -->
-    <section class="card" id="card-pdf" hidden>
-      <h2><span class="step-num">3</span> Cerrar ficha</h2>
-      <p class="muted">Cuando todos los puestos terminaron de cargar sus estudios, generá el PDF final del paciente.</p>
-      <button id="btn-pdf" class="btn btn-accent">Generar PDF final</button>
-      <div id="estado-pdf" class="hint"></div>
-    </section>
+      <!-- ---------- VISTA: CARGAR / EDITAR ---------- -->
+      <section class="vista" id="vista-cargar">
 
-  </main>
+        <section class="card" id="card-paciente">
+          <h2><span class="step-num">1</span> Datos del paciente</h2>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="dni">DNI</label>
+              <input id="dni" type="text" inputmode="numeric" placeholder="Ej: 30123456" autocomplete="off">
+            </div>
+            <button id="btn-buscar" class="btn btn-secondary">Buscar</button>
+          </div>
+
+          <div id="estado-busqueda" class="hint"></div>
+
+          <div class="field-row" id="datos-nombre" hidden>
+            <div class="field">
+              <label for="nombre">Nombre</label>
+              <input id="nombre" type="text" placeholder="Nombre">
+            </div>
+            <div class="field">
+              <label for="apellido">Apellido</label>
+              <input id="apellido" type="text" placeholder="Apellido">
+            </div>
+          </div>
+
+          <div class="field-row" id="datos-empresa" hidden>
+            <div class="field">
+              <label for="empresa">Empresa solicitante</label>
+              <input id="empresa" list="lista-empresas" type="text" placeholder="Ej: Transportes del Sur SA">
+              <datalist id="lista-empresas"></datalist>
+            </div>
+          </div>
+
+          <div id="estado-ficha" class="hint"></div>
+          <div id="checklist" class="checklist" hidden></div>
+        </section>
+
+        <section class="card" id="card-servicio" hidden>
+          <h2><span class="step-num">2</span> Cargar / editar estudio</h2>
+
+          <div class="field">
+            <label for="servicio">Servicio</label>
+            <select id="servicio"></select>
+          </div>
+          <div id="aviso-permiso" class="hint error" hidden></div>
+
+          <div class="field">
+            <label for="profesional">Profesional que realiza el estudio</label>
+            <input id="profesional" type="text" placeholder="Nombre y apellido del profesional (opcional)">
+          </div>
+
+          <!-- Bloque exclusivo de Laboratorio -->
+          <div id="bloque-laboratorio" hidden>
+            <h3 class="subtitulo">Resultado de laboratorio</h3>
+            <p class="muted">Completá solo los valores obtenidos. Lo que quede vacío figura como "-" en el PDF.</p>
+            <div id="grid-laboratorio" class="grid-lab"></div>
+          </div>
+
+          <div class="field">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" rows="4" placeholder="Notas generales del estudio..."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="imagenes">Agregar imágenes (JPG, se pueden elegir varias)</label>
+            <input id="imagenes" type="file" accept="image/jpeg,image/jpg" multiple>
+            <div id="preview-nuevas" class="preview-grid"></div>
+          </div>
+
+          <div class="field" id="galeria-existente-wrap" hidden>
+            <label>Imágenes ya cargadas</label>
+            <div id="galeria-existente" class="preview-grid"></div>
+          </div>
+
+          <button id="btn-guardar" class="btn btn-primary">Guardar estudio</button>
+          <div id="estado-guardar" class="hint"></div>
+        </section>
+
+        <section class="card" id="card-pdf" hidden>
+          <h2><span class="step-num">3</span> Cerrar ficha</h2>
+          <p class="muted">Cuando todos los puestos terminaron de cargar sus estudios, cerrá la ficha y generá el PDF final.</p>
+          <div class="field-row">
+            <button id="btn-pdf" class="btn btn-accent">Solo generar PDF</button>
+            <button id="btn-cerrar" class="btn btn-secondary">Cerrar ficha y generar PDF</button>
+          </div>
+          <div id="estado-pdf" class="hint"></div>
+        </section>
+
+      </section>
+
+      <!-- ---------- VISTA: PACIENTES ---------- -->
+      <section class="vista" id="vista-pacientes" hidden>
+        <section class="card">
+          <h2>Pacientes cargados</h2>
+          <input id="filtro-pacientes" type="text" placeholder="Buscar por DNI, nombre, apellido o empresa..." class="buscador">
+          <div id="tabla-pacientes" class="lista-pacientes"></div>
+        </section>
+      </section>
+
+      <!-- ---------- VISTA: POR EMPRESA ---------- -->
+      <section class="vista" id="vista-empresa" hidden>
+        <section class="card">
+          <h2>Pacientes por empresa y fecha</h2>
+          <div id="grupos-empresa"></div>
+        </section>
+      </section>
+
+      <!-- ---------- VISTA: USUARIOS (solo Administración) ---------- -->
+      <section class="vista" id="vista-usuarios" hidden>
+        <section class="card">
+          <h2>Nuevo usuario</h2>
+          <div class="field-row">
+            <div class="field">
+              <label for="nu-usuario">Usuario</label>
+              <input id="nu-usuario" type="text">
+            </div>
+            <div class="field">
+              <label for="nu-password">Contraseña</label>
+              <input id="nu-password" type="text">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="nu-nombre">Nombre completo</label>
+              <input id="nu-nombre" type="text">
+            </div>
+            <div class="field">
+              <label for="nu-especialidad">Especialidad / rol</label>
+              <select id="nu-especialidad"></select>
+            </div>
+          </div>
+          <button id="btn-crear-usuario" class="btn btn-primary">Crear usuario</button>
+          <div id="estado-usuario" class="hint"></div>
+        </section>
+
+        <section class="card">
+          <h2>Usuarios existentes</h2>
+          <div id="tabla-usuarios" class="lista-pacientes"></div>
+        </section>
+      </section>
+
+    </main>
+  </div>
 
   <footer class="foot">
     <p>Configurá la URL del backend en <code>script.js</code> antes de usar el sistema.</p>
