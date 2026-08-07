@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+:root{
+  --bg: #EFF3F1;
+  --surface: #FFFFFF;
+  --ink: #12262A;
+  --muted: #5B6E70;
+  --primary: #0F5C55;
+  --primary-dark: #0A423D;
+  --accent: #E2A63A;
+  --accent-dark: #B9821F;
+  --line: #D8E2DF;
+  --ok: #2F8F5B;
+  --radius: 10px;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+h1, h2{
+  font-family: 'Space Grotesk', sans-serif;
+  margin: 0;
+}
+
+/* --- Header con "tab" de ficha de paciente --- */
+.topbar{
+  background: var(--primary-dark);
+  padding: 0 20px;
+}
+.topbar-inner{
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 0 18px;
+  position: relative;
+}
+.tab-mark{
+  width: 14px;
+  height: 42px;
+  background: var(--accent);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.brand-eyebrow{
+  display: block;
+  color: #9FCFC6;
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.brand h1{
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.wrap{
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  box-shadow: 0 1px 2px rgba(18,38,42,0.04);
+}
+.card h2{
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: var(--primary-dark);
+}
+.step-num{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.field-row{
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.field{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 160px;
+}
+label{
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+input, select, textarea{
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+}
+#dni{
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: .03em;
+}
+input:focus, select:focus, textarea:focus{
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  background: #fff;
+}
+textarea{ resize: vertical; }
+
+.btn{
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform .05s ease, filter .15s ease;
+}
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity: .5; cursor: not-allowed; }
+.btn-primary{ background: var(--primary); color: #fff; }
+.btn-primary:hover:not(:disabled){ background: var(--primary-dark); }
+.btn-secondary{ background: var(--ink); color: #fff; }
+.btn-secondary:hover:not(:disabled){ filter: brightness(1.15); }
+.btn-accent{ background: var(--accent); color: #241a03; width: 100%; }
+.btn-accent:hover:not(:disabled){ background: var(--accent-dark); color: #fff; }
+
+.hint{
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 10px;
+  min-height: 1em;
+}
+.hint.error{ color: #B3432B; }
+.hint.ok{ color: var(--ok); }
+.muted{ color: var(--muted); font-size: 14px; margin-top: -4px; }
+
+/* --- Checklist de servicios cargados --- */
+.checklist{
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip{
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  padding: 6px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+}
+.chip.done{
+  background: #E4F3EA;
+  border-color: #BFE3CC;
+  color: var(--ok);
+}
+.chip.done::before{ content: "✓ "; }
+
+.preview{
+  margin-top: 10px;
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.foot{
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 10px 20px 40px;
+}
+.foot code{
+  background: #E3E9E7;
+  padding: 2px 6px;
+  border-radius: 4px;
+}

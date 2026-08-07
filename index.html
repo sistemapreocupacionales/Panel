@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudios Preocupacionales</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="tab-mark" aria-hidden="true"></span>
+      <div class="brand">
+        <span class="brand-eyebrow">Establecimiento médico</span>
+        <h1>Estudios Preocupacionales</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- PASO 1: BUSCAR / CREAR PACIENTE -->
+    <section class="card" id="card-paciente">
+      <h2><span class="step-num">1</span> Datos del paciente</h2>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="dni">DNI</label>
+          <input id="dni" type="text" inputmode="numeric" placeholder="Ej: 30123456" autocomplete="off">
+        </div>
+        <button id="btn-buscar" class="btn btn-secondary">Buscar</button>
+      </div>
+
+      <div id="estado-busqueda" class="hint"></div>
+
+      <div class="field-row" id="datos-nombre" hidden>
+        <div class="field">
+          <label for="nombre">Nombre</label>
+          <input id="nombre" type="text" placeholder="Nombre">
+        </div>
+        <div class="field">
+          <label for="apellido">Apellido</label>
+          <input id="apellido" type="text" placeholder="Apellido">
+        </div>
+      </div>
+
+      <div id="checklist" class="checklist" hidden></div>
+    </section>
+
+    <!-- PASO 2: CARGAR SERVICIO -->
+    <section class="card" id="card-servicio" hidden>
+      <h2><span class="step-num">2</span> Cargar estudio</h2>
+
+      <div class="field">
+        <label for="servicio">Servicio</label>
+        <select id="servicio"></select>
+      </div>
+
+      <div class="field">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" rows="4" placeholder="Resultado, notas, aclaraciones del estudio..."></textarea>
+      </div>
+
+      <div class="field">
+        <label for="imagen">Imagen del estudio (JPG)</label>
+        <input id="imagen" type="file" accept="image/jpeg,image/jpg">
+        <img id="preview" class="preview" hidden alt="Vista previa de la imagen cargada">
+      </div>
+
+      <button id="btn-guardar" class="btn btn-primary">Guardar estudio</button>
+      <div id="estado-guardar" class="hint"></div>
+    </section>
+
+    <!-- PASO 3: GENERAR PDF -->
+    <section class="card" id="card-pdf" hidden>
+      <h2><span class="step-num">3</span> Cerrar ficha</h2>
+      <p class="muted">Cuando todos los puestos terminaron de cargar sus estudios, generá el PDF final del paciente.</p>
+      <button id="btn-pdf" class="btn btn-accent">Generar PDF final</button>
+      <div id="estado-pdf" class="hint"></div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <p>Configurá la URL del backend en <code>script.js</code> antes de usar el sistema.</p>
+  </footer>
+
+<script src="script.js"></script>
+</body>
+</html>
