@@ -5,8 +5,12 @@
  * ========================================================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyLvjUH8YRkh_g9OI8Y0ht28kIVRmeq0qMbF84SoxAubodAfYwfSOtbgMM9u0f5Phwd/exec';
 
-// Debe coincidir con SERVICIOS y LAB_CAMPOS de Code.gs
-const SERVICIOS_FALLBACK = ['Rayos X', 'Laboratorio', 'Electrocardiograma', 'Otro estudio'];
+// Debe coincidir con SERVICIOS, LAB_CAMPOS y DDJJ_PREGUNTAS de Code.gs
+const SERVICIOS_FALLBACK = [
+  'Declaración Jurada', 'Rayos X', 'Laboratorio', 'Electrocardiograma',
+  'Otro estudio', 'Otro estudio 2', 'Otro estudio 3', 'Otro estudio 4'
+];
+const SERVICIO_DDJJ = 'Declaración Jurada';
 const LAB_CAMPOS_FALLBACK = [
   { id: 'hto', label: 'Hematocrito' },
   { id: 'hb', label: 'Hemoglobina' },
@@ -24,15 +28,34 @@ const LAB_CAMPOS_FALLBACK = [
   { id: 'grupoFactor', label: 'Grupo sanguíneo y factor RH' },
   { id: 'vdrl', label: 'VDRL' }
 ];
+const DDJJ_PREGUNTAS_FALLBACK = [
+  { id: 'hipertension', label: '¿Tiene o tuvo hipertensión arterial?' },
+  { id: 'diabetes', label: '¿Tiene o tuvo diabetes?' },
+  { id: 'cardiopatia', label: '¿Tiene o tuvo alguna enfermedad cardíaca?' },
+  { id: 'respiratoria', label: '¿Tiene o tuvo alguna enfermedad respiratoria (asma, EPOC, etc.)?' },
+  { id: 'epilepsia', label: '¿Tiene o tuvo epilepsia o convulsiones?' },
+  { id: 'columna', label: '¿Tiene o tuvo problemas de columna o hernias?' },
+  { id: 'alergias', label: '¿Tiene alergias conocidas (a medicamentos, alimentos, etc.)?' },
+  { id: 'cirugias', label: '¿Tuvo cirugías previas?' },
+  { id: 'medicacion', label: '¿Toma medicación de forma habitual?' },
+  { id: 'psiquiatrico', label: '¿Recibe o recibió tratamiento psiquiátrico o psicológico?' },
+  { id: 'visual', label: '¿Tiene problemas de visión no corregidos con anteojos/lentes?' },
+  { id: 'auditivo', label: '¿Tiene problemas de audición?' },
+  { id: 'accidentes', label: '¿Sufrió accidentes de trabajo o enfermedades profesionales previas?' },
+  { id: 'otras', label: 'Otras enfermedades, condiciones o antecedentes relevantes' }
+];
 const ROL_ADMIN = 'Administracion';
 
 /* --------------------- Estado global --------------------- */
 let sesion = null; // { token, usuario, nombreCompleto, especialidad, esAdmin }
 let SERVICIOS = SERVICIOS_FALLBACK;
 let LAB_CAMPOS = LAB_CAMPOS_FALLBACK;
+let DDJJ_PREGUNTAS = DDJJ_PREGUNTAS_FALLBACK;
 let estudiosActuales = [];
 let pacientesCache = [];
 let nuevasImagenes = []; // File[] pendientes de subir para el estudio actual
+let nuevaFirmaProfesional = null; // File|null pendiente de subir
+let nuevaFirmaPaciente = null; // File|null pendiente de subir (Declaración Jurada)
 
 /* --------------------- Referencias DOM --------------------- */
 const $vistaLogin = document.getElementById('vista-login');
@@ -82,11 +105,17 @@ const $avisoPermiso = document.getElementById('aviso-permiso');
 const $profesional = document.getElementById('profesional');
 const $bloqueLab = document.getElementById('bloque-laboratorio');
 const $gridLab = document.getElementById('grid-laboratorio');
+const $bloqueDdjj = document.getElementById('bloque-ddjj');
+const $listaDdjj = document.getElementById('lista-ddjj');
+const $firmaPaciente = document.getElementById('firma-paciente');
+const $previewFirmaPaciente = document.getElementById('preview-firma-paciente');
 const $observaciones = document.getElementById('observaciones');
 const $imagenes = document.getElementById('imagenes');
 const $previewNuevas = document.getElementById('preview-nuevas');
 const $galeriaWrap = document.getElementById('galeria-existente-wrap');
 const $galeriaExistente = document.getElementById('galeria-existente');
+const $firmaProfesional = document.getElementById('firma-profesional');
+const $previewFirmaProfesional = document.getElementById('preview-firma-profesional');
 const $btnGuardar = document.getElementById('btn-guardar');
 const $estadoGuardar = document.getElementById('estado-guardar');
 
@@ -155,6 +184,7 @@ function cargarSesionGuardada() {
       sesion = guardada;
       SERVICIOS = guardada.servicios || SERVICIOS_FALLBACK;
       LAB_CAMPOS = guardada.labCampos || LAB_CAMPOS_FALLBACK;
+      DDJJ_PREGUNTAS = guardada.ddjjPreguntas || DDJJ_PREGUNTAS_FALLBACK;
       return true;
     }
   } catch (e) { /* nada guardado o corrupto */ }
@@ -171,6 +201,7 @@ function mostrarApp() {
 
   inicializarSelectServicio();
   inicializarGridLaboratorio();
+  inicializarListaDdjj();
   cambiarVista('cargar');
 }
 
@@ -198,6 +229,7 @@ $formLogin.addEventListener('submit', async (ev) => {
     sesion = data;
     SERVICIOS = data.servicios || SERVICIOS_FALLBACK;
     LAB_CAMPOS = data.labCampos || LAB_CAMPOS_FALLBACK;
+    DDJJ_PREGUNTAS = data.ddjjPreguntas || DDJJ_PREGUNTAS_FALLBACK;
     localStorage.setItem('sesionEstudios', JSON.stringify(sesion));
 
     $loginPassword.value = '';
@@ -292,6 +324,24 @@ function inicializarGridLaboratorio() {
     div.className = 'field';
     div.innerHTML = `<label for="lab-${campo.id}">${campo.label}</label><input id="lab-${campo.id}" data-lab="${campo.id}" type="text">`;
     $gridLab.appendChild(div);
+  });
+}
+
+function inicializarListaDdjj() {
+  $listaDdjj.innerHTML = '';
+  DDJJ_PREGUNTAS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'ddjj-item';
+    div.innerHTML = `
+      <div class="ddjj-pregunta">${p.label}</div>
+      <div class="ddjj-opciones">
+        <label><input type="radio" name="ddjj-${p.id}" value="Sí" data-ddjj="${p.id}"> Sí</label>
+        <label><input type="radio" name="ddjj-${p.id}" value="No" data-ddjj="${p.id}"> No</label>
+        <label><input type="radio" name="ddjj-${p.id}" value="No sabe" data-ddjj="${p.id}"> No sabe</label>
+      </div>
+      <input type="text" placeholder="Aclaración (opcional)" data-ddjj-detalle="${p.id}">
+    `;
+    $listaDdjj.appendChild(div);
   });
 }
 
@@ -424,6 +474,8 @@ function limpiarFormularioPaciente() {
   $datosNombre.hidden = true; $datosEmpresa.hidden = true; $datosPersonales.hidden = true;
   $checklist.hidden = true; $cardServicio.hidden = true; $cardPdf.hidden = true;
   estudiosActuales = [];
+  nuevaFirmaProfesional = null; nuevaFirmaPaciente = null;
+  $previewFirmaProfesional.innerHTML = ''; $previewFirmaPaciente.innerHTML = '';
   mostrarEstado($estadoBusqueda, '', '');
   mostrarEstado($estadoFicha, '', '');
 }
@@ -432,16 +484,21 @@ $servicio.addEventListener('change', cargarDatosServicioSeleccionado);
 
 function cargarDatosServicioSeleccionado() {
   const servicio = $servicio.value;
-  const puedeEditar = sesion.esAdmin || sesion.especialidad === servicio;
+  const puedeEditar = sesion.esAdmin || sesion.especialidad === servicio || servicio === SERVICIO_DDJJ;
 
   $avisoPermiso.hidden = puedeEditar;
   if (!puedeEditar) $avisoPermiso.textContent = 'Solo podés visualizar este estudio: no tenés permiso para editar "' + servicio + '".';
 
-  [$profesional, $observaciones, $imagenes].forEach(el => el.disabled = !puedeEditar);
+  [$profesional, $observaciones, $imagenes, $firmaProfesional].forEach(el => el.disabled = !puedeEditar);
   $btnGuardar.disabled = !puedeEditar;
 
   $bloqueLab.hidden = servicio !== 'Laboratorio';
   $gridLab.querySelectorAll('input').forEach(inp => { inp.value = ''; inp.disabled = !puedeEditar; });
+
+  $bloqueDdjj.hidden = servicio !== SERVICIO_DDJJ;
+  $listaDdjj.querySelectorAll('input[type="radio"]').forEach(r => { r.checked = false; r.disabled = !puedeEditar; });
+  $listaDdjj.querySelectorAll('input[type="text"]').forEach(t => { t.value = ''; t.disabled = !puedeEditar; });
+  $firmaPaciente.disabled = !puedeEditar;
 
   const existente = estudiosActuales.find(e => e.servicio === servicio);
 
@@ -452,6 +509,20 @@ function cargarDatosServicioSeleccionado() {
     Object.keys(existente.laboratorio).forEach(id => {
       const input = document.getElementById('lab-' + id);
       if (input) input.value = existente.laboratorio[id] || '';
+    });
+  }
+
+  if (existente && existente.ddjj) {
+    Object.keys(existente.ddjj).forEach(id => {
+      const r = existente.ddjj[id] || {};
+      if (r.respuesta) {
+        const radio = $listaDdjj.querySelector(`input[data-ddjj="${id}"][value="${r.respuesta}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (r.detalle) {
+        const detalle = $listaDdjj.querySelector(`input[data-ddjj-detalle="${id}"]`);
+        if (detalle) detalle.value = r.detalle;
+      }
     });
   }
 
@@ -466,6 +537,59 @@ function cargarDatosServicioSeleccionado() {
     $galeriaWrap.hidden = true;
     $galeriaExistente.innerHTML = '';
   }
+
+  // Firma del paciente (Declaración Jurada)
+  nuevaFirmaPaciente = null;
+  $firmaPaciente.value = '';
+  renderFirmaExistente($previewFirmaPaciente, existente && existente.firmaPaciente ? existente.firmaPaciente.url : null);
+
+  // Firma del profesional (todos los estudios)
+  nuevaFirmaProfesional = null;
+  $firmaProfesional.value = '';
+  renderFirmaExistente($previewFirmaProfesional, existente && existente.firmaProfesional ? existente.firmaProfesional.url : null);
+}
+
+// Muestra la firma ya guardada de un estudio (si existe). Si la imagen
+// no llega a cargar (por ejemplo, un archivo viejo con permisos sin
+// migrar), ofrece un link para abrirla directamente en Drive en vez de
+// dejar un ícono roto.
+function renderFirmaExistente(contenedor, url) {
+  contenedor.innerHTML = '';
+  if (!url) return;
+  const item = document.createElement('div');
+  item.className = 'preview-item';
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'Firma cargada';
+  img.loading = 'lazy';
+  img.onerror = () => {
+    contenedor.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener">No se pudo previsualizar. Ver imagen original</a>';
+  };
+  item.appendChild(img);
+  contenedor.appendChild(item);
+}
+
+$firmaPaciente.addEventListener('change', () => {
+  nuevaFirmaPaciente = $firmaPaciente.files[0] || null;
+  mostrarPreviewFirmaLocal($previewFirmaPaciente, nuevaFirmaPaciente);
+});
+
+$firmaProfesional.addEventListener('change', () => {
+  nuevaFirmaProfesional = $firmaProfesional.files[0] || null;
+  mostrarPreviewFirmaLocal($previewFirmaProfesional, nuevaFirmaProfesional);
+});
+
+function mostrarPreviewFirmaLocal(contenedor, file) {
+  if (!file) return;
+  contenedor.innerHTML = '';
+  const item = document.createElement('div');
+  item.className = 'preview-item';
+  const img = document.createElement('img');
+  const lector = new FileReader();
+  lector.onload = e => { img.src = e.target.result; };
+  lector.readAsDataURL(file);
+  item.appendChild(img);
+  contenedor.appendChild(item);
 }
 
 function renderGaleriaExistente(imagenes, puedeEditar) {
@@ -473,8 +597,18 @@ function renderGaleriaExistente(imagenes, puedeEditar) {
   imagenes.forEach(img => {
     const item = document.createElement('div');
     item.className = 'preview-item';
-    item.innerHTML = `<img src="${img.url}" alt="Imagen del estudio">` +
+    item.innerHTML = `<img src="${img.url}" alt="Imagen del estudio" loading="lazy">` +
       (puedeEditar ? `<button class="quitar" title="Eliminar imagen" data-imgid="${img.id}">✕</button>` : '');
+    // Si la imagen quedó con una URL vieja (de antes de la migración),
+    // mostramos un link a Drive en vez de un ícono roto.
+    const imgEl = item.querySelector('img');
+    imgEl.addEventListener('error', () => {
+      const aviso = document.createElement('a');
+      aviso.href = img.url; aviso.target = '_blank'; aviso.rel = 'noopener';
+      aviso.textContent = 'Ver imagen';
+      aviso.className = 'hint';
+      imgEl.replaceWith(aviso);
+    });
     $galeriaExistente.appendChild(item);
   });
 
@@ -541,6 +675,16 @@ $btnGuardar.addEventListener('click', async () => {
     $gridLab.querySelectorAll('input').forEach(inp => { laboratorio[inp.dataset.lab] = inp.value.trim(); });
   }
 
+  let ddjj = null;
+  if (servicio === SERVICIO_DDJJ) {
+    ddjj = {};
+    DDJJ_PREGUNTAS.forEach(p => {
+      const radio = $listaDdjj.querySelector(`input[data-ddjj="${p.id}"]:checked`);
+      const detalle = $listaDdjj.querySelector(`input[data-ddjj-detalle="${p.id}"]`);
+      ddjj[p.id] = { respuesta: radio ? radio.value : '', detalle: detalle ? detalle.value.trim() : '' };
+    });
+  }
+
   $btnGuardar.disabled = true;
   mostrarEstado($estadoGuardar, 'Guardando...', '');
 
@@ -548,11 +692,14 @@ $btnGuardar.addEventListener('click', async () => {
     const imagenesBase64 = await Promise.all(nuevasImagenes.map(async f => ({
       dataUrl: await leerComoBase64(f), nombre: f.name
     })));
+    const firmaProfesionalBase64 = nuevaFirmaProfesional ? await leerComoBase64(nuevaFirmaProfesional) : null;
+    const firmaPacienteBase64 = (servicio === SERVICIO_DDJJ && nuevaFirmaPaciente) ? await leerComoBase64(nuevaFirmaPaciente) : null;
 
     const data = await apiPost({
       action: 'guardarEstudio', token: sesion.token,
       dni, nombre, apellido, empresa, servicio, profesional, observaciones,
-      laboratorio, imagenesBase64,
+      laboratorio, ddjj, imagenesBase64,
+      firmaProfesionalBase64, firmaPacienteBase64,
       fechaNacimiento: $fechaNacimiento.value,
       telefono: $telefono.value.trim(),
       direccion: $direccion.value.trim(),
