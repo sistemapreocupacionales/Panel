@@ -301,3 +301,37 @@ textarea{ resize: vertical; }
 
 .foot{ text-align: center; color: var(--muted); font-size: 12.5px; padding: 10px 20px 40px; }
 .foot code{ background: #E3E9E7; padding: 2px 6px; border-radius: 4px; }
+
+/* ---------------- DECLARACIÓN JURADA ---------------- */
+.lista-ddjj{ display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.ddjj-item{
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg);
+}
+.ddjj-pregunta{ font-size: 14px; font-weight: 600; margin-bottom: 8px; color: var(--ink); }
+.ddjj-opciones{ display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.ddjj-opciones label{
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 500; font-size: 13.5px; color: var(--ink);
+  cursor: pointer;
+}
+.ddjj-opciones input[type="radio"]{ width: 16px; height: 16px; accent-color: var(--primary); }
+.ddjj-item input[type="text"]{ width: 100%; }
+.ddjj-item input:disabled{ opacity: .6; }
+
+/* ---------------- RESPONSIVE (MÓVIL) ---------------- */
+@media (max-width: 620px){
+  .field-row{ flex-direction: column; align-items: stretch; }
+  .field{ min-width: 0; }
+  .field-row .btn{ width: 100%; }
+  .topbar-inner{ flex-wrap: wrap; row-gap: 10px; }
+  .user-box{ width: 100%; justify-content: space-between; }
+  .tabs{ gap: 2px; }
+  .tab-btn{ padding: 9px 11px; font-size: 12.5px; }
+  .card{ padding: 18px 16px; }
+  .preview-item, .preview-item img{ width: 92px; height: 92px; }
+  .grid-lab{ grid-template-columns: 1fr; }
+  .ddjj-opciones{ gap: 12px; }
+}
