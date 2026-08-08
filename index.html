@@ -158,6 +158,19 @@
             <div id="grid-laboratorio" class="grid-lab"></div>
           </div>
 
+          <!-- Bloque exclusivo de Declaración Jurada -->
+          <div id="bloque-ddjj" hidden>
+            <h3 class="subtitulo">Declaración jurada de salud</h3>
+            <p class="muted">Marcá cada ítem según corresponda. Podés agregar una aclaración si hace falta.</p>
+            <div id="lista-ddjj" class="lista-ddjj"></div>
+
+            <div class="field" style="margin-top:6px;">
+              <label for="firma-paciente">Firma del paciente (imagen)</label>
+              <input id="firma-paciente" type="file" accept="image/jpeg,image/jpg,image/png">
+              <div id="preview-firma-paciente" class="preview-grid"></div>
+            </div>
+          </div>
+
           <div class="field">
             <label for="observaciones">Observaciones</label>
             <textarea id="observaciones" rows="4" placeholder="Notas generales del estudio..."></textarea>
@@ -172,6 +185,12 @@
           <div class="field" id="galeria-existente-wrap" hidden>
             <label>Imágenes ya cargadas</label>
             <div id="galeria-existente" class="preview-grid"></div>
+          </div>
+
+          <div class="field">
+            <label for="firma-profesional">Firma del profesional que realiza el estudio (imagen, opcional)</label>
+            <input id="firma-profesional" type="file" accept="image/jpeg,image/jpg,image/png">
+            <div id="preview-firma-profesional" class="preview-grid"></div>
           </div>
 
           <button id="btn-guardar" class="btn btn-primary">Guardar estudio</button>
