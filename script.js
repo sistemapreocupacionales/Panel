@@ -3,7 +3,7 @@
  *  Pegá acá la URL que te da Apps Script (Implementar > Nueva
  *  implementación > Aplicación web). Termina en /exec
  * ========================================================= */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw410rfvJTf6D7doPzjZBICaUom1DKe2zESCufO1Z33TTDpEi4Fn2C0JBBrQGURex41/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyLvjUH8YRkh_g9OI8Y0ht28kIVRmeq0qMbF84SoxAubodAfYwfSOtbgMM9u0f5Phwd/exec';
 
 // Debe coincidir con SERVICIOS y LAB_CAMPOS de Code.gs
 const SERVICIOS_FALLBACK = ['Rayos X', 'Laboratorio', 'Electrocardiograma', 'Otro estudio'];
