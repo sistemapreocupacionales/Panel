@@ -92,6 +92,49 @@
 
           <div id="estado-ficha" class="hint"></div>
           <div id="checklist" class="checklist" hidden></div>
+
+          <div id="datos-personales" class="datos-personales" hidden>
+            <h3 class="subtitulo">Datos personales</h3>
+            <div class="field-row">
+              <div class="field">
+                <label for="fecha-nacimiento">Fecha de nacimiento</label>
+                <input id="fecha-nacimiento" type="date">
+              </div>
+              <div class="field">
+                <label for="edad">Edad</label>
+                <input id="edad" type="text" placeholder="-" readonly>
+              </div>
+              <div class="field">
+                <label for="telefono">Teléfono de contacto</label>
+                <input id="telefono" type="tel" placeholder="Ej: 11 5555-5555">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="direccion">Dirección</label>
+                <input id="direccion" type="text" placeholder="Calle y número">
+              </div>
+              <div class="field">
+                <label for="localidad">Localidad</label>
+                <input id="localidad" type="text">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="provincia">Provincia</label>
+                <input id="provincia" type="text">
+              </div>
+              <div class="field">
+                <label for="nacionalidad">Nacionalidad</label>
+                <input id="nacionalidad" type="text" placeholder="Ej: Argentina">
+              </div>
+            </div>
+            <div class="field-row">
+              <button id="btn-guardar-personales" class="btn btn-secondary">Guardar datos personales</button>
+              <button id="btn-eliminar-paciente" class="btn btn-danger" hidden>Eliminar paciente</button>
+            </div>
+            <div id="estado-personales" class="hint"></div>
+          </div>
         </section>
 
         <section class="card" id="card-servicio" hidden>
@@ -149,6 +192,23 @@
 
       <!-- ---------- VISTA: PACIENTES ---------- -->
       <section class="vista" id="vista-pacientes" hidden>
+        <section class="card" id="card-eliminar-tanda" hidden>
+          <h2>Eliminar por tanda de fechas</h2>
+          <p class="muted">Elimina de forma permanente a todos los pacientes cuyo último estudio realizado esté dentro del rango. Solo Administración.</p>
+          <div class="field-row">
+            <div class="field">
+              <label for="tanda-desde">Desde</label>
+              <input id="tanda-desde" type="date">
+            </div>
+            <div class="field">
+              <label for="tanda-hasta">Hasta</label>
+              <input id="tanda-hasta" type="date">
+            </div>
+            <button id="btn-eliminar-tanda" class="btn btn-danger">Eliminar pacientes del rango</button>
+          </div>
+          <div id="estado-tanda" class="hint"></div>
+        </section>
+
         <section class="card">
           <h2>Pacientes cargados</h2>
           <input id="filtro-pacientes" type="text" placeholder="Buscar por DNI, nombre, apellido o empresa..." class="buscador">
