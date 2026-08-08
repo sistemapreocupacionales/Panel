@@ -361,13 +361,22 @@ function pintarChecklist() {
 
 $btnGuardarPersonales.addEventListener('click', async () => {
   const dni = $dni.value.trim();
+  const nombre = $nombre.value.trim();
+  const apellido = $apellido.value.trim();
+  const empresa = $empresa.value.trim();
+
   if (!dni) { mostrarEstado($estadoPersonales, 'Buscá primero un paciente por DNI.', 'error'); return; }
+  if (!nombre || !apellido) {
+    mostrarEstado($estadoPersonales, 'Completá nombre y apellido antes de guardar los datos personales.', 'error');
+    return;
+  }
 
   $btnGuardarPersonales.disabled = true;
   mostrarEstado($estadoPersonales, 'Guardando...', '');
   try {
     const data = await apiPost({
       action: 'actualizarPaciente', token: sesion.token, dni,
+      nombre, apellido, empresa,
       fechaNacimiento: $fechaNacimiento.value,
       telefono: $telefono.value.trim(),
       direccion: $direccion.value.trim(),
@@ -377,6 +386,7 @@ $btnGuardarPersonales.addEventListener('click', async () => {
     });
     if (!data.ok) throw new Error(data.error || 'No se pudo guardar');
     $edad.value = (data.paciente.edad !== null && data.paciente.edad !== undefined) ? data.paciente.edad + ' años' : '';
+    $btnEliminarPaciente.hidden = !sesion.esAdmin;
     mostrarEstado($estadoPersonales, 'Datos personales guardados.', 'ok');
   } catch (err) {
     mostrarEstado($estadoPersonales, 'Error: ' + err.message, 'error');
