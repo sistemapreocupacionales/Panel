@@ -193,6 +193,12 @@ textarea{ resize: vertical; }
 .hint.ok{ color: var(--ok); }
 .muted{ color: var(--muted); font-size: 14px; margin-top: -6px; margin-bottom: 10px; }
 
+/* ---------------- DATOS PERSONALES ---------------- */
+.datos-personales{ margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.datos-personales .field-row{ margin-bottom: 0; }
+.datos-personales .btn-danger{ margin-left: auto; }
+#edad{ background: #E9EEEC; color: var(--muted); }
+
 /* ---------------- CHECKLIST ---------------- */
 .checklist{ margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
 .chip{
