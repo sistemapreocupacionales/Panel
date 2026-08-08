@@ -58,6 +58,24 @@ const $listaEmpresas = document.getElementById('lista-empresas');
 const $estadoFicha = document.getElementById('estado-ficha');
 const $checklist = document.getElementById('checklist');
 
+const $datosPersonales = document.getElementById('datos-personales');
+const $fechaNacimiento = document.getElementById('fecha-nacimiento');
+const $edad = document.getElementById('edad');
+const $telefono = document.getElementById('telefono');
+const $direccion = document.getElementById('direccion');
+const $localidad = document.getElementById('localidad');
+const $provincia = document.getElementById('provincia');
+const $nacionalidad = document.getElementById('nacionalidad');
+const $btnGuardarPersonales = document.getElementById('btn-guardar-personales');
+const $btnEliminarPaciente = document.getElementById('btn-eliminar-paciente');
+const $estadoPersonales = document.getElementById('estado-personales');
+
+const $cardEliminarTanda = document.getElementById('card-eliminar-tanda');
+const $tandaDesde = document.getElementById('tanda-desde');
+const $tandaHasta = document.getElementById('tanda-hasta');
+const $btnEliminarTanda = document.getElementById('btn-eliminar-tanda');
+const $estadoTanda = document.getElementById('estado-tanda');
+
 const $cardServicio = document.getElementById('card-servicio');
 const $servicio = document.getElementById('servicio');
 const $avisoPermiso = document.getElementById('aviso-permiso');
@@ -90,6 +108,43 @@ const $estadoUsuario = document.getElementById('estado-usuario');
 const $tablaUsuarios = document.getElementById('tabla-usuarios');
 
 /* =========================================================
+ *  FECHAS / EDAD
+ * ========================================================= */
+
+// Convierte cualquier valor de fecha (ISO con hora, yyyy-MM-dd, Date)
+// al formato pedido dd-MM-yyyy. Devuelve '-' si no hay fecha válida.
+function formatearFecha(valor) {
+  if (!valor) return '-';
+  const f = new Date(valor);
+  if (isNaN(f.getTime())) return '-';
+  const dd = String(f.getDate()).padStart(2, '0');
+  const mm = String(f.getMonth() + 1).padStart(2, '0');
+  const yyyy = f.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+
+// Calcula la edad en años a partir de un input type="date" (yyyy-MM-dd).
+function calcularEdad(fechaNacimientoStr) {
+  if (!fechaNacimientoStr) return null;
+  const partes = fechaNacimientoStr.split('-');
+  if (partes.length !== 3) return null;
+  const fn = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+  if (isNaN(fn.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - fn.getFullYear();
+  const mes = hoy.getMonth() - fn.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < fn.getDate())) edad--;
+  return edad >= 0 ? edad : null;
+}
+
+function actualizarEdadEnPantalla() {
+  const edad = calcularEdad($fechaNacimiento.value);
+  $edad.value = edad !== null ? edad + ' años' : '';
+}
+
+$fechaNacimiento.addEventListener('change', actualizarEdadEnPantalla);
+
+/* =========================================================
  *  SESIÓN / LOGIN
  * ========================================================= */
 
@@ -112,6 +167,7 @@ function mostrarApp() {
   $userNombre.textContent = sesion.nombreCompleto;
   $userEspecialidad.textContent = sesion.especialidad;
   $tabUsuarios.hidden = !sesion.esAdmin;
+  $cardEliminarTanda.hidden = !sesion.esAdmin;
 
   inicializarSelectServicio();
   inicializarGridLaboratorio();
@@ -257,16 +313,28 @@ async function buscarPaciente(dni) {
       $nombre.value = data.paciente.nombre;
       $apellido.value = data.paciente.apellido;
       $empresa.value = data.paciente.empresa || '';
+      $fechaNacimiento.value = data.paciente.fechaNacimiento || '';
+      $telefono.value = data.paciente.telefono || '';
+      $direccion.value = data.paciente.direccion || '';
+      $localidad.value = data.paciente.localidad || '';
+      $provincia.value = data.paciente.provincia || '';
+      $nacionalidad.value = data.paciente.nacionalidad || '';
+      $edad.value = (data.paciente.edad !== null && data.paciente.edad !== undefined) ? data.paciente.edad + ' años' : '';
       mostrarEstado($estadoBusqueda, 'Paciente encontrado.', 'ok');
       mostrarEstado($estadoFicha, 'Ficha: ' + (data.paciente.estado || 'Abierta'), data.paciente.estado === 'Cerrada' ? 'error' : 'ok');
     } else {
       $nombre.value = ''; $apellido.value = ''; $empresa.value = '';
+      $fechaNacimiento.value = ''; $telefono.value = ''; $direccion.value = '';
+      $localidad.value = ''; $provincia.value = ''; $nacionalidad.value = ''; $edad.value = '';
       mostrarEstado($estadoBusqueda, 'No existe todavía: completá los datos para crearlo.', '');
       mostrarEstado($estadoFicha, '', '');
     }
 
     $datosNombre.hidden = false;
     $datosEmpresa.hidden = false;
+    $datosPersonales.hidden = false;
+    $btnEliminarPaciente.hidden = !(sesion.esAdmin && data.existe);
+    mostrarEstado($estadoPersonales, '', '');
     pintarChecklist();
     $checklist.hidden = false;
     $cardServicio.hidden = false;
@@ -289,6 +357,65 @@ function pintarChecklist() {
     chip.textContent = s;
     $checklist.appendChild(chip);
   });
+}
+
+$btnGuardarPersonales.addEventListener('click', async () => {
+  const dni = $dni.value.trim();
+  if (!dni) { mostrarEstado($estadoPersonales, 'Buscá primero un paciente por DNI.', 'error'); return; }
+
+  $btnGuardarPersonales.disabled = true;
+  mostrarEstado($estadoPersonales, 'Guardando...', '');
+  try {
+    const data = await apiPost({
+      action: 'actualizarPaciente', token: sesion.token, dni,
+      fechaNacimiento: $fechaNacimiento.value,
+      telefono: $telefono.value.trim(),
+      direccion: $direccion.value.trim(),
+      localidad: $localidad.value.trim(),
+      provincia: $provincia.value.trim(),
+      nacionalidad: $nacionalidad.value.trim()
+    });
+    if (!data.ok) throw new Error(data.error || 'No se pudo guardar');
+    $edad.value = (data.paciente.edad !== null && data.paciente.edad !== undefined) ? data.paciente.edad + ' años' : '';
+    mostrarEstado($estadoPersonales, 'Datos personales guardados.', 'ok');
+  } catch (err) {
+    mostrarEstado($estadoPersonales, 'Error: ' + err.message, 'error');
+  } finally {
+    $btnGuardarPersonales.disabled = false;
+  }
+});
+
+$btnEliminarPaciente.addEventListener('click', async () => {
+  const dni = $dni.value.trim();
+  const nombreCompleto = ($nombre.value + ' ' + $apellido.value).trim();
+  if (!dni) return;
+  if (!confirm('¿Eliminar definitivamente a ' + (nombreCompleto || dni) + '? Se borran sus estudios, imágenes y PDFs. Esta acción no se puede deshacer.')) return;
+
+  $btnEliminarPaciente.disabled = true;
+  mostrarEstado($estadoPersonales, 'Eliminando...', '');
+  try {
+    const dataEliminar = await apiPost({ action: 'eliminarPaciente', token: sesion.token, dni });
+    if (!dataEliminar.ok) throw new Error(dataEliminar.error || 'No se pudo eliminar');
+    mostrarEstado($estadoPersonales, 'Paciente eliminado.', 'ok');
+    limpiarFormularioPaciente();
+    if (pacientesCache.length) { const data = await apiGet('listarPacientes'); pacientesCache = data.pacientes || []; renderizarListaPacientes(); }
+  } catch (err) {
+    mostrarEstado($estadoPersonales, 'Error: ' + err.message, 'error');
+  } finally {
+    $btnEliminarPaciente.disabled = false;
+  }
+});
+
+function limpiarFormularioPaciente() {
+  $dni.value = '';
+  $nombre.value = ''; $apellido.value = ''; $empresa.value = '';
+  $fechaNacimiento.value = ''; $telefono.value = ''; $direccion.value = '';
+  $localidad.value = ''; $provincia.value = ''; $nacionalidad.value = ''; $edad.value = '';
+  $datosNombre.hidden = true; $datosEmpresa.hidden = true; $datosPersonales.hidden = true;
+  $checklist.hidden = true; $cardServicio.hidden = true; $cardPdf.hidden = true;
+  estudiosActuales = [];
+  mostrarEstado($estadoBusqueda, '', '');
+  mostrarEstado($estadoFicha, '', '');
 }
 
 $servicio.addEventListener('change', cargarDatosServicioSeleccionado);
@@ -415,11 +542,20 @@ $btnGuardar.addEventListener('click', async () => {
     const data = await apiPost({
       action: 'guardarEstudio', token: sesion.token,
       dni, nombre, apellido, empresa, servicio, profesional, observaciones,
-      laboratorio, imagenesBase64
+      laboratorio, imagenesBase64,
+      fechaNacimiento: $fechaNacimiento.value,
+      telefono: $telefono.value.trim(),
+      direccion: $direccion.value.trim(),
+      localidad: $localidad.value.trim(),
+      provincia: $provincia.value.trim(),
+      nacionalidad: $nacionalidad.value.trim()
     });
     if (!data.ok) throw new Error(data.error || 'Error desconocido');
 
     estudiosActuales = data.estudios || [];
+    if (data.paciente && data.paciente.edad !== null && data.paciente.edad !== undefined) {
+      $edad.value = data.paciente.edad + ' años';
+    }
     pintarChecklist();
     $cardPdf.hidden = false;
     mostrarEstado($estadoGuardar, 'Estudio de "' + servicio + '" guardado correctamente.', 'ok');
@@ -496,6 +632,30 @@ async function cargarVistaPacientes() {
 
 $filtroPacientes.addEventListener('input', renderizarListaPacientes);
 
+$btnEliminarTanda.addEventListener('click', async () => {
+  const desde = $tandaDesde.value;
+  const hasta = $tandaHasta.value;
+  if (!desde || !hasta) { mostrarEstado($estadoTanda, 'Completá ambas fechas.', 'error'); return; }
+  if (desde > hasta) { mostrarEstado($estadoTanda, 'La fecha "Desde" no puede ser posterior a "Hasta".', 'error'); return; }
+
+  if (!confirm('¿Eliminar definitivamente a TODOS los pacientes cuyo último estudio esté entre ' +
+    formatearFecha(desde) + ' y ' + formatearFecha(hasta) + '? Esta acción no se puede deshacer.')) return;
+
+  $btnEliminarTanda.disabled = true;
+  mostrarEstado($estadoTanda, 'Eliminando...', '');
+  try {
+    const data = await apiPost({ action: 'eliminarPacientesPorRango', token: sesion.token, fechaDesde: desde, fechaHasta: hasta });
+    if (!data.ok) throw new Error(data.error || 'No se pudo eliminar');
+    pacientesCache = data.pacientes || [];
+    renderizarListaPacientes();
+    mostrarEstado($estadoTanda, (data.eliminados || 0) + ' paciente(s) eliminado(s).', 'ok');
+  } catch (err) {
+    mostrarEstado($estadoTanda, 'Error: ' + err.message, 'error');
+  } finally {
+    $btnEliminarTanda.disabled = false;
+  }
+});
+
 function renderizarListaPacientes() {
   const filtro = $filtroPacientes.value.trim().toLowerCase();
   const filtrados = pacientesCache.filter(p =>
@@ -524,15 +684,18 @@ function filaPaciente(p) {
     return `<span class="chip${hecho ? ' done' : ''}">${s}</span>`;
   }).join('');
 
+  const edadTxt = (p.edad !== null && p.edad !== undefined) ? ' · ' + p.edad + ' años' : '';
+
   div.innerHTML = `
     <div class="fp-datos">
-      <div class="fp-nombre">${p.apellido}, ${p.nombre} <span class="estado-pill ${p.estado === 'Cerrada' ? 'cerrada' : 'abierta'}">${p.estado}</span></div>
-      <div class="fp-sub">DNI ${p.dni} · ${p.empresa}</div>
+      <div class="fp-nombre">${p.apellido}, ${p.nombre}${edadTxt} <span class="estado-pill ${p.estado === 'Cerrada' ? 'cerrada' : 'abierta'}">${p.estado}</span></div>
+      <div class="fp-sub">DNI ${p.dni} · ${p.empresa} · Últ. estudio: ${formatearFecha(p.ultimaFechaEstudio)}</div>
       <div class="fp-chips">${chips}</div>
     </div>
     <div class="fp-acciones">
       <button class="btn btn-secondary btn-small" data-abrir="${p.dni}">Abrir</button>
       <button class="btn btn-accent btn-small" data-cerrar="${p.dni}">Cerrar + PDF</button>
+      ${sesion.esAdmin ? `<button class="btn btn-danger btn-small" data-eliminar="${p.dni}">Eliminar</button>` : ''}
     </div>`;
 
   div.querySelector('[data-abrir]').addEventListener('click', () => {
@@ -544,8 +707,33 @@ function filaPaciente(p) {
       generarPdf(p.dni, true);
     }
   });
+  const btnEliminar = div.querySelector('[data-eliminar]');
+  if (btnEliminar) {
+    btnEliminar.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar definitivamente a ' + p.nombre + ' ' + p.apellido + '? Se borran sus estudios, imágenes y PDFs.')) return;
+      btnEliminar.disabled = true;
+      try {
+        await eliminarPacienteYRefrescar(p.dni);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        btnEliminar.disabled = false;
+      }
+    });
+  }
 
   return div;
+}
+
+async function eliminarPacienteYRefrescar(dni) {
+  const data = await apiPost({ action: 'eliminarPaciente', token: sesion.token, dni });
+  if (!data.ok) throw new Error(data.error || 'No se pudo eliminar');
+  const vistaActiva = document.querySelector('.tab-btn.active').dataset.vista;
+  if (vistaActiva === 'empresa') {
+    cargarVistaEmpresa();
+  } else {
+    pacientesCache = data.pacientes || [];
+    renderizarListaPacientes();
+  }
 }
 
 function actualizarListaEmpresas(pacientes) {
@@ -630,6 +818,7 @@ function renderizarUsuarios(usuarios) {
   usuarios.forEach(u => {
     const div = document.createElement('div');
     div.className = 'fila-paciente';
+    const esUsuarioActual = u.usuario.toLowerCase() === sesion.usuario.toLowerCase();
     div.innerHTML = `
       <div class="fp-datos">
         <div class="fp-nombre">${u.nombreCompleto} ${u.activo ? '' : '(deshabilitado)'}</div>
@@ -637,6 +826,7 @@ function renderizarUsuarios(usuarios) {
       </div>
       <div class="fp-acciones">
         <button class="btn btn-secondary btn-small" data-reset="${u.usuario}">Resetear contraseña</button>
+        ${esUsuarioActual ? '' : `<button class="btn btn-danger btn-small" data-eliminar-usuario="${u.usuario}">Eliminar</button>`}
       </div>`;
     div.querySelector('[data-reset]').addEventListener('click', async () => {
       const nueva = prompt('Nueva contraseña para "' + u.usuario + '":');
@@ -649,6 +839,21 @@ function renderizarUsuarios(usuarios) {
         alert('Error: ' + err.message);
       }
     });
+    const btnEliminarUsuario = div.querySelector('[data-eliminar-usuario]');
+    if (btnEliminarUsuario) {
+      btnEliminarUsuario.addEventListener('click', async () => {
+        if (!confirm('¿Eliminar al usuario "' + u.usuario + '"? No va a poder volver a ingresar.')) return;
+        btnEliminarUsuario.disabled = true;
+        try {
+          const data = await apiPost({ action: 'eliminarUsuario', token: sesion.token, usuario: u.usuario });
+          if (!data.ok) throw new Error(data.error || 'No se pudo eliminar');
+          renderizarUsuarios(data.usuarios || []);
+        } catch (err) {
+          alert('Error: ' + err.message);
+          btnEliminarUsuario.disabled = false;
+        }
+      });
+    }
     $tablaUsuarios.appendChild(div);
   });
 }
