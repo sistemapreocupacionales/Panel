@@ -11,6 +11,9 @@ const SERVICIOS_FALLBACK = [
   'Otro estudio', 'Otro estudio 2', 'Otro estudio 3', 'Otro estudio 4'
 ];
 const SERVICIO_DDJJ = 'Declaración Jurada';
+// Servicios "libres": no tienen un nombre fijo de estudio, se define
+// al cargarlos. Debe coincidir con SERVICIOS_LIBRES de Code.gs.
+const SERVICIOS_LIBRES = ['Otro estudio', 'Otro estudio 2', 'Otro estudio 3', 'Otro estudio 4'];
 const LAB_CAMPOS_FALLBACK = [
   { id: 'hto', label: 'Hematocrito' },
   { id: 'hb', label: 'Hemoglobina' },
@@ -102,6 +105,8 @@ const $estadoTanda = document.getElementById('estado-tanda');
 const $cardServicio = document.getElementById('card-servicio');
 const $servicio = document.getElementById('servicio');
 const $avisoPermiso = document.getElementById('aviso-permiso');
+const $campoNombreLibre = document.getElementById('campo-nombre-libre');
+const $nombreLibre = document.getElementById('nombre-libre');
 const $profesional = document.getElementById('profesional');
 const $bloqueLab = document.getElementById('bloque-laboratorio');
 const $gridLab = document.getElementById('grid-laboratorio');
@@ -203,6 +208,51 @@ function mostrarApp() {
   inicializarGridLaboratorio();
   inicializarListaDdjj();
   cambiarVista('cargar');
+
+  // La sesión guardada en el navegador puede ser vieja (de antes de
+  // agregar la Declaración Jurada, los estudios adicionales, etc.).
+  // Por eso, además de usar lo que ya tenemos, siempre pedimos la
+  // configuración actual al backend y refrescamos la pantalla si algo
+  // cambió, sin necesidad de que el usuario cierre sesión.
+  refrescarConfiguracion();
+}
+
+// Trae la lista de servicios, campos de laboratorio y preguntas de la
+// Declaración Jurada directamente del backend (acción pública "ping",
+// no necesita sesión) y actualiza la pantalla si hay cambios respecto
+// a lo que había quedado guardado en este navegador.
+async function refrescarConfiguracion() {
+  try {
+    const resp = await fetch(API_URL + '?action=ping');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data || !data.ok) return;
+
+    const cambioServicios = JSON.stringify(SERVICIOS) !== JSON.stringify(data.servicios || SERVICIOS_FALLBACK);
+    const cambioLab = JSON.stringify(LAB_CAMPOS) !== JSON.stringify(data.labCampos || LAB_CAMPOS_FALLBACK);
+    const cambioDdjj = JSON.stringify(DDJJ_PREGUNTAS) !== JSON.stringify(data.ddjjPreguntas || DDJJ_PREGUNTAS_FALLBACK);
+
+    SERVICIOS = data.servicios || SERVICIOS_FALLBACK;
+    LAB_CAMPOS = data.labCampos || LAB_CAMPOS_FALLBACK;
+    DDJJ_PREGUNTAS = data.ddjjPreguntas || DDJJ_PREGUNTAS_FALLBACK;
+
+    if (sesion) {
+      sesion.servicios = SERVICIOS;
+      sesion.labCampos = LAB_CAMPOS;
+      sesion.ddjjPreguntas = DDJJ_PREGUNTAS;
+      localStorage.setItem('sesionEstudios', JSON.stringify(sesion));
+    }
+
+    if (cambioServicios || cambioLab || cambioDdjj) {
+      inicializarSelectServicio();
+      inicializarGridLaboratorio();
+      inicializarListaDdjj();
+      if (!$cardServicio.hidden) cargarDatosServicioSeleccionado();
+    }
+  } catch (e) {
+    // Si falla (sin conexión, API_URL mal configurada, etc.) seguimos
+    // funcionando con lo que ya teníamos cargado.
+  }
 }
 
 function mostrarLogin(mensaje) {
@@ -402,9 +452,11 @@ function pintarChecklist() {
   $checklist.innerHTML = '';
   const cargados = new Set(estudiosActuales.map(e => e.servicio));
   SERVICIOS.forEach(s => {
+    const existente = estudiosActuales.find(e => e.servicio === s);
     const chip = document.createElement('span');
     chip.className = 'chip' + (cargados.has(s) ? ' done' : '');
-    chip.textContent = s;
+    chip.textContent = (existente && existente.nombrePersonalizado) ? existente.nombrePersonalizado : s;
+    if (existente && existente.nombrePersonalizado) chip.title = 'Cargado como "' + s + '"';
     $checklist.appendChild(chip);
   });
 }
@@ -492,6 +544,11 @@ function cargarDatosServicioSeleccionado() {
   [$profesional, $observaciones, $imagenes, $firmaProfesional].forEach(el => el.disabled = !puedeEditar);
   $btnGuardar.disabled = !puedeEditar;
 
+  const esLibre = SERVICIOS_LIBRES.indexOf(servicio) !== -1;
+  $campoNombreLibre.hidden = !esLibre;
+  $nombreLibre.disabled = !puedeEditar;
+  $nombreLibre.value = '';
+
   $bloqueLab.hidden = servicio !== 'Laboratorio';
   $gridLab.querySelectorAll('input').forEach(inp => { inp.value = ''; inp.disabled = !puedeEditar; });
 
@@ -504,6 +561,7 @@ function cargarDatosServicioSeleccionado() {
 
   $profesional.value = existente ? (existente.profesional || '') : '';
   $observaciones.value = existente ? (existente.observaciones || '') : '';
+  if (esLibre && existente) $nombreLibre.value = existente.nombrePersonalizado || '';
 
   if (existente && existente.laboratorio) {
     Object.keys(existente.laboratorio).forEach(id => {
@@ -669,6 +727,13 @@ $btnGuardar.addEventListener('click', async () => {
     return;
   }
 
+  const esLibre = SERVICIOS_LIBRES.indexOf(servicio) !== -1;
+  const nombrePersonalizado = esLibre ? $nombreLibre.value.trim() : '';
+  if (esLibre && !nombrePersonalizado) {
+    mostrarEstado($estadoGuardar, 'Ingresá el nombre del estudio antes de guardar.', 'error');
+    return;
+  }
+
   let laboratorio = null;
   if (servicio === 'Laboratorio') {
     laboratorio = {};
@@ -698,7 +763,7 @@ $btnGuardar.addEventListener('click', async () => {
     const data = await apiPost({
       action: 'guardarEstudio', token: sesion.token,
       dni, nombre, apellido, empresa, servicio, profesional, observaciones,
-      laboratorio, ddjj, imagenesBase64,
+      laboratorio, ddjj, imagenesBase64, nombrePersonalizado,
       firmaProfesionalBase64, firmaPacienteBase64,
       fechaNacimiento: $fechaNacimiento.value,
       telefono: $telefono.value.trim(),
@@ -715,7 +780,7 @@ $btnGuardar.addEventListener('click', async () => {
     }
     pintarChecklist();
     $cardPdf.hidden = false;
-    mostrarEstado($estadoGuardar, 'Estudio de "' + servicio + '" guardado correctamente.', 'ok');
+    mostrarEstado($estadoGuardar, 'Estudio de "' + (nombrePersonalizado || servicio) + '" guardado correctamente.', 'ok');
     cargarDatosServicioSeleccionado();
   } catch (err) {
     mostrarEstado($estadoGuardar, 'Error: ' + err.message, 'error');
