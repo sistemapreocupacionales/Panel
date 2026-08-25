@@ -59,6 +59,7 @@ let pacientesCache = [];
 let nuevasImagenes = []; // File[] pendientes de subir para el estudio actual
 let nuevaFirmaProfesional = null; // File|null pendiente de subir
 let nuevaFirmaPaciente = null; // File|null pendiente de subir (Declaración Jurada)
+let nuevaFotoPaciente = null; // File|null pendiente de subir (foto tipo carnet)
 
 /* --------------------- Referencias DOM --------------------- */
 const $vistaLogin = document.getElementById('vista-login');
@@ -92,6 +93,8 @@ const $direccion = document.getElementById('direccion');
 const $localidad = document.getElementById('localidad');
 const $provincia = document.getElementById('provincia');
 const $nacionalidad = document.getElementById('nacionalidad');
+const $fotoPaciente = document.getElementById('foto-paciente');
+const $previewFotoPaciente = document.getElementById('preview-foto-paciente');
 const $btnGuardarPersonales = document.getElementById('btn-guardar-personales');
 const $btnEliminarPaciente = document.getElementById('btn-eliminar-paciente');
 const $estadoPersonales = document.getElementById('estado-personales');
@@ -430,6 +433,10 @@ async function buscarPaciente(dni) {
       mostrarEstado($estadoFicha, '', '');
     }
 
+    nuevaFotoPaciente = null;
+    $fotoPaciente.value = '';
+    renderFirmaExistente($previewFotoPaciente, (data.existe && data.paciente.foto) ? data.paciente.foto.url : null);
+
     $datosNombre.hidden = false;
     $datosEmpresa.hidden = false;
     $datosPersonales.hidden = false;
@@ -476,6 +483,7 @@ $btnGuardarPersonales.addEventListener('click', async () => {
   $btnGuardarPersonales.disabled = true;
   mostrarEstado($estadoPersonales, 'Guardando...', '');
   try {
+    const fotoBase64 = nuevaFotoPaciente ? await leerComoBase64(nuevaFotoPaciente) : null;
     const data = await apiPost({
       action: 'actualizarPaciente', token: sesion.token, dni,
       nombre, apellido, empresa,
@@ -484,11 +492,15 @@ $btnGuardarPersonales.addEventListener('click', async () => {
       direccion: $direccion.value.trim(),
       localidad: $localidad.value.trim(),
       provincia: $provincia.value.trim(),
-      nacionalidad: $nacionalidad.value.trim()
+      nacionalidad: $nacionalidad.value.trim(),
+      fotoBase64
     });
     if (!data.ok) throw new Error(data.error || 'No se pudo guardar');
     $edad.value = (data.paciente.edad !== null && data.paciente.edad !== undefined) ? data.paciente.edad + ' años' : '';
     $btnEliminarPaciente.hidden = !sesion.esAdmin;
+    nuevaFotoPaciente = null;
+    $fotoPaciente.value = '';
+    renderFirmaExistente($previewFotoPaciente, data.paciente.foto ? data.paciente.foto.url : null);
     mostrarEstado($estadoPersonales, 'Datos personales guardados.', 'ok');
   } catch (err) {
     mostrarEstado($estadoPersonales, 'Error: ' + err.message, 'error');
@@ -526,8 +538,9 @@ function limpiarFormularioPaciente() {
   $datosNombre.hidden = true; $datosEmpresa.hidden = true; $datosPersonales.hidden = true;
   $checklist.hidden = true; $cardServicio.hidden = true; $cardPdf.hidden = true;
   estudiosActuales = [];
-  nuevaFirmaProfesional = null; nuevaFirmaPaciente = null;
-  $previewFirmaProfesional.innerHTML = ''; $previewFirmaPaciente.innerHTML = '';
+  nuevaFirmaProfesional = null; nuevaFirmaPaciente = null; nuevaFotoPaciente = null;
+  $previewFirmaProfesional.innerHTML = ''; $previewFirmaPaciente.innerHTML = ''; $previewFotoPaciente.innerHTML = '';
+  $fotoPaciente.value = '';
   mostrarEstado($estadoBusqueda, '', '');
   mostrarEstado($estadoFicha, '', '');
 }
@@ -630,6 +643,11 @@ function renderFirmaExistente(contenedor, url) {
 $firmaPaciente.addEventListener('change', () => {
   nuevaFirmaPaciente = $firmaPaciente.files[0] || null;
   mostrarPreviewFirmaLocal($previewFirmaPaciente, nuevaFirmaPaciente);
+});
+
+$fotoPaciente.addEventListener('change', () => {
+  nuevaFotoPaciente = $fotoPaciente.files[0] || null;
+  mostrarPreviewFirmaLocal($previewFotoPaciente, nuevaFotoPaciente);
 });
 
 $firmaProfesional.addEventListener('change', () => {
