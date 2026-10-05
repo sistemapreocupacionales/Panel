@@ -335,3 +335,82 @@ textarea{ resize: vertical; }
   .grid-lab{ grid-template-columns: 1fr; }
   .ddjj-opciones{ gap: 12px; }
 }
+
+
+/* ---------------- PATOLOGÍAS CRÓNICAS ---------------- */
+.alerta-cronicas{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid #E8B9AC;
+  border-left: 6px solid var(--danger);
+  border-radius: 8px;
+  background: #FBEDE9;
+}
+.alerta-cronicas .alerta-titulo{
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--danger);
+  margin-right: 4px;
+}
+.chip-cronica{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #E8B9AC;
+  color: #8A2E1A;
+}
+.chip-cronica button{
+  border: none;
+  background: transparent;
+  color: #8A2E1A;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+.cronica-agregar{ display: flex; gap: 8px; }
+.cronica-agregar input{ flex: 1; }
+.cronicas-chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.muted-inline{ font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.fp-cronicas{ display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.fp-cronicas .chip-cronica{ font-size: 12px; padding: 3px 9px; }
+.chip.pdf-ok{ background: #E8EEF9; border-color: #C3D2EE; color: #2F4E8F; }
+
+/* ---------------- PDF COMPLETO CARGADO ---------------- */
+.pdf-actual{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #BFE3CC;
+  border-radius: 8px;
+  background: #E4F3EA;
+}
+.pdf-icono{
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  font-size: 12px;
+  padding: 8px 7px;
+  border-radius: 6px;
+  background: var(--danger);
+  color: #fff;
+}
+.pdf-info{ flex: 1; min-width: 160px; display: flex; flex-direction: column; font-size: 14px; word-break: break-word; }
+
+@media (max-width: 620px){
+  .cronica-agregar{ flex-direction: column; }
+  .pdf-actual .fp-acciones{ width: 100%; }
+}
