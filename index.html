@@ -71,6 +71,8 @@
 
           <div id="estado-busqueda" class="hint"></div>
 
+          <div id="alerta-cronicas" class="alerta-cronicas" role="status" hidden></div>
+
           <div class="field-row" id="datos-nombre" hidden>
             <div class="field">
               <label for="nombre">Nombre</label>
@@ -129,6 +131,33 @@
                 <input id="nacionalidad" type="text" placeholder="Ej: Argentina">
               </div>
             </div>
+            <div class="field cronicas-editor">
+              <label for="cronica-input">Patologías crónicas (para tener presentes en próximos estudios)</label>
+              <div class="cronica-agregar">
+                <input id="cronica-input" list="lista-cronicas" type="text" placeholder="Ej: Hipertensión arterial, Diabetes tipo 2..." autocomplete="off">
+                <datalist id="lista-cronicas">
+                  <option value="Hipertensión arterial"></option>
+                  <option value="Diabetes tipo 1"></option>
+                  <option value="Diabetes tipo 2"></option>
+                  <option value="Asma"></option>
+                  <option value="EPOC"></option>
+                  <option value="Hipotiroidismo"></option>
+                  <option value="Hipertiroidismo"></option>
+                  <option value="Dislipemia"></option>
+                  <option value="Obesidad"></option>
+                  <option value="Epilepsia"></option>
+                  <option value="Cardiopatía"></option>
+                  <option value="Insuficiencia renal crónica"></option>
+                  <option value="Hernia de disco"></option>
+                  <option value="Artrosis"></option>
+                  <option value="Enfermedad celíaca"></option>
+                  <option value="Hepatitis crónica"></option>
+                </datalist>
+                <button type="button" id="btn-agregar-cronica" class="btn btn-secondary">Agregar</button>
+              </div>
+              <div id="cronicas-chips" class="cronicas-chips"></div>
+              <span class="muted-inline">Se guardan con el botón "Guardar datos personales" y quedan en la ficha del paciente.</span>
+            </div>
             <div class="field">
               <label for="foto-paciente">Foto del paciente (tipo carnet, para la ficha/DDJJ)</label>
               <input id="foto-paciente" type="file" accept="image/jpeg,image/jpg,image/png">
@@ -140,10 +169,36 @@
             </div>
             <div id="estado-personales" class="hint"></div>
           </div>
+
+          <div id="bloque-pdf-completo" class="datos-personales" hidden>
+            <h3 class="subtitulo">PDF con todos los estudios (paciente que ya viene con los estudios hechos)</h3>
+            <p class="muted">Si el paciente trae un único PDF con todos sus resultados, subilo acá y no hace falta cargar los estudios uno por uno. PDF de hasta 15 MB.</p>
+            <div id="pdf-completo-actual" class="pdf-actual" hidden>
+              <span class="pdf-icono" aria-hidden="true">PDF</span>
+              <div class="pdf-info">
+                <strong id="pdf-completo-nombre">-</strong>
+                <span id="pdf-completo-fecha" class="muted-inline"></span>
+              </div>
+              <div class="fp-acciones">
+                <button type="button" id="btn-ver-pdf-completo" class="btn btn-secondary btn-small">Descargar</button>
+                <button type="button" id="btn-eliminar-pdf-completo" class="btn btn-danger btn-small">Quitar</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="pdf-completo-archivo" id="label-pdf-completo">Elegir PDF</label>
+                <input id="pdf-completo-archivo" type="file" accept="application/pdf,.pdf">
+              </div>
+              <button type="button" id="btn-subir-pdf-completo" class="btn btn-primary">Subir PDF</button>
+            </div>
+            <div id="estado-pdf-completo" class="hint"></div>
+          </div>
         </section>
 
         <section class="card" id="card-servicio" hidden>
           <h2><span class="step-num">2</span> Cargar / editar estudio</h2>
+
+          <div id="aviso-pdf-cargado" class="hint ok" hidden>Este paciente ya tiene un PDF completo cargado: no hace falta cargar los estudios uno por uno (solo si querés agregar algo más).</div>
 
           <div class="field">
             <label for="servicio">Servicio</label>
@@ -209,9 +264,10 @@
 
         <section class="card" id="card-pdf" hidden>
           <h2><span class="step-num">3</span> Cerrar ficha</h2>
-          <p class="muted">Cuando todos los puestos terminaron de cargar sus estudios, cerrá la ficha y generá el PDF final.</p>
+          <p class="muted">Cuando todos los puestos terminaron de cargar sus estudios, cerrá la ficha y generá el PDF final. Si el paciente solo tiene el PDF completo subido, se entrega ese PDF.</p>
           <div class="field-row">
             <button id="btn-pdf" class="btn btn-accent">Solo generar PDF</button>
+            <button id="btn-descargar-pdf-cargado" class="btn btn-accent" hidden>Descargar PDF cargado</button>
             <button id="btn-cerrar" class="btn btn-secondary">Cerrar ficha y generar PDF</button>
           </div>
           <div id="estado-pdf" class="hint"></div>
@@ -240,7 +296,7 @@
 
         <section class="card">
           <h2>Pacientes cargados</h2>
-          <input id="filtro-pacientes" type="text" placeholder="Buscar por DNI, nombre, apellido o empresa..." class="buscador">
+          <input id="filtro-pacientes" type="text" placeholder="Buscar por DNI, nombre, apellido, empresa o patología..." class="buscador">
           <div id="tabla-pacientes" class="lista-pacientes"></div>
         </section>
       </section>
