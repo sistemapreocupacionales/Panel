@@ -60,6 +60,9 @@ let nuevasImagenes = []; // File[] pendientes de subir para el estudio actual
 let nuevaFirmaProfesional = null; // File|null pendiente de subir
 let nuevaFirmaPaciente = null; // File|null pendiente de subir (Declaración Jurada)
 let nuevaFotoPaciente = null; // File|null pendiente de subir (foto tipo carnet)
+let patologiasActuales = []; // patologías crónicas del paciente abierto (editables antes de guardar)
+let pdfCompletoActual = null; // { nombre, fecha } si el paciente tiene un PDF completo cargado
+const MAX_MB_PDF = 15; // debe coincidir con MAX_BYTES_PDF_COMPLETO de Code.gs
 
 /* --------------------- Referencias DOM --------------------- */
 const $vistaLogin = document.getElementById('vista-login');
@@ -98,6 +101,24 @@ const $previewFotoPaciente = document.getElementById('preview-foto-paciente');
 const $btnGuardarPersonales = document.getElementById('btn-guardar-personales');
 const $btnEliminarPaciente = document.getElementById('btn-eliminar-paciente');
 const $estadoPersonales = document.getElementById('estado-personales');
+
+const $alertaCronicas = document.getElementById('alerta-cronicas');
+const $cronicaInput = document.getElementById('cronica-input');
+const $btnAgregarCronica = document.getElementById('btn-agregar-cronica');
+const $cronicasChips = document.getElementById('cronicas-chips');
+
+const $bloquePdfCompleto = document.getElementById('bloque-pdf-completo');
+const $pdfCompletoActual = document.getElementById('pdf-completo-actual');
+const $pdfCompletoNombre = document.getElementById('pdf-completo-nombre');
+const $pdfCompletoFecha = document.getElementById('pdf-completo-fecha');
+const $btnVerPdfCompleto = document.getElementById('btn-ver-pdf-completo');
+const $btnEliminarPdfCompleto = document.getElementById('btn-eliminar-pdf-completo');
+const $pdfCompletoArchivo = document.getElementById('pdf-completo-archivo');
+const $labelPdfCompleto = document.getElementById('label-pdf-completo');
+const $btnSubirPdfCompleto = document.getElementById('btn-subir-pdf-completo');
+const $estadoPdfCompleto = document.getElementById('estado-pdf-completo');
+const $avisoPdfCargado = document.getElementById('aviso-pdf-cargado');
+const $btnDescargarPdfCargado = document.getElementById('btn-descargar-pdf-cargado');
 
 const $cardEliminarTanda = document.getElementById('card-eliminar-tanda');
 const $tandaDesde = document.getElementById('tanda-desde');
@@ -437,15 +458,24 @@ async function buscarPaciente(dni) {
     $fotoPaciente.value = '';
     renderFirmaExistente($previewFotoPaciente, (data.existe && data.paciente.foto) ? data.paciente.foto.url : null);
 
+    patologiasActuales = data.existe ? (data.paciente.patologiasCronicas || []).slice() : [];
+    $cronicaInput.value = '';
+    renderCronicas();
+    pdfCompletoActual = data.existe ? (data.paciente.pdfCompleto || null) : null;
+    $pdfCompletoArchivo.value = '';
+    mostrarEstado($estadoPdfCompleto, '', '');
+    renderPdfCompleto();
+
     $datosNombre.hidden = false;
     $datosEmpresa.hidden = false;
     $datosPersonales.hidden = false;
+    $bloquePdfCompleto.hidden = false;
     $btnEliminarPaciente.hidden = !(sesion.esAdmin && data.existe);
     mostrarEstado($estadoPersonales, '', '');
     pintarChecklist();
     $checklist.hidden = false;
     $cardServicio.hidden = false;
-    $cardPdf.hidden = estudiosActuales.length === 0;
+    actualizarVisibilidadCardPdf();
 
     cargarDatosServicioSeleccionado();
   } catch (err) {
@@ -466,7 +496,169 @@ function pintarChecklist() {
     if (existente && existente.nombrePersonalizado) chip.title = 'Cargado como "' + s + '"';
     $checklist.appendChild(chip);
   });
+  if (pdfCompletoActual) {
+    const chipPdf = document.createElement('span');
+    chipPdf.className = 'chip pdf-ok';
+    chipPdf.textContent = 'PDF completo cargado';
+    $checklist.appendChild(chipPdf);
+  }
 }
+
+/* =========================================================
+ *  PATOLOGÍAS CRÓNICAS
+ * ========================================================= */
+
+// Escapa texto libre antes de insertarlo como HTML.
+function esc(texto) {
+  return String(texto === null || texto === undefined ? '' : texto)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Dibuja las patologías en dos lugares: el cartel rojo bien visible
+// arriba de la ficha y los chips editables dentro de "Datos personales".
+function renderCronicas() {
+  $cronicasChips.innerHTML = '';
+  patologiasActuales.forEach((nombre, idx) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip-cronica';
+    chip.innerHTML = `${esc(nombre)} <button type="button" title="Quitar" aria-label="Quitar ${esc(nombre)}">✕</button>`;
+    chip.querySelector('button').addEventListener('click', () => {
+      patologiasActuales.splice(idx, 1);
+      renderCronicas();
+    });
+    $cronicasChips.appendChild(chip);
+  });
+
+  if (patologiasActuales.length === 0) {
+    $alertaCronicas.hidden = true;
+    $alertaCronicas.innerHTML = '';
+  } else {
+    $alertaCronicas.hidden = false;
+    $alertaCronicas.innerHTML = '<span class="alerta-titulo">⚠ Patologías crónicas:</span>' +
+      patologiasActuales.map(n => `<span class="chip-cronica">${esc(n)}</span>`).join('');
+  }
+}
+
+function agregarCronica() {
+  const texto = $cronicaInput.value.trim();
+  if (!texto) return;
+  // Permite cargar varias de una vez separadas por coma o punto y coma
+  texto.split(/[,;]/).map(t => t.trim()).filter(Boolean).forEach(t => {
+    const yaEsta = patologiasActuales.some(x => x.toLowerCase() === t.toLowerCase());
+    if (!yaEsta) patologiasActuales.push(t);
+  });
+  $cronicaInput.value = '';
+  renderCronicas();
+  mostrarEstado($estadoPersonales, 'Recordá tocar "Guardar datos personales" para que queden registradas.', '');
+}
+
+$btnAgregarCronica.addEventListener('click', agregarCronica);
+$cronicaInput.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') { ev.preventDefault(); agregarCronica(); }
+});
+
+/* =========================================================
+ *  PDF COMPLETO (paciente que ya trae los estudios hechos)
+ * ========================================================= */
+
+function renderPdfCompleto() {
+  if (pdfCompletoActual) {
+    $pdfCompletoActual.hidden = false;
+    $pdfCompletoNombre.textContent = pdfCompletoActual.nombre || 'PDF cargado.pdf';
+    $pdfCompletoFecha.textContent = pdfCompletoActual.fecha ? 'Subido el ' + formatearFecha(pdfCompletoActual.fecha) : '';
+    $labelPdfCompleto.textContent = 'Reemplazar por otro PDF';
+    $btnSubirPdfCompleto.textContent = 'Reemplazar PDF';
+  } else {
+    $pdfCompletoActual.hidden = true;
+    $labelPdfCompleto.textContent = 'Elegir PDF';
+    $btnSubirPdfCompleto.textContent = 'Subir PDF';
+  }
+  $btnDescargarPdfCargado.hidden = !pdfCompletoActual;
+  $avisoPdfCargado.hidden = !pdfCompletoActual;
+  pintarChecklist();
+  actualizarVisibilidadCardPdf();
+}
+
+function actualizarVisibilidadCardPdf() {
+  $cardPdf.hidden = estudiosActuales.length === 0 && !pdfCompletoActual;
+}
+
+$btnSubirPdfCompleto.addEventListener('click', async () => {
+  const dni = $dni.value.trim();
+  const nombre = $nombre.value.trim();
+  const apellido = $apellido.value.trim();
+  const empresa = $empresa.value.trim();
+  const archivo = $pdfCompletoArchivo.files[0];
+
+  if (!dni) { mostrarEstado($estadoPdfCompleto, 'Buscá primero un paciente por DNI.', 'error'); return; }
+  if (!nombre || !apellido) { mostrarEstado($estadoPdfCompleto, 'Completá nombre y apellido antes de subir el PDF.', 'error'); return; }
+  if (!archivo) { mostrarEstado($estadoPdfCompleto, 'Elegí un archivo PDF.', 'error'); return; }
+  if (archivo.type !== 'application/pdf' && !/\.pdf$/i.test(archivo.name)) {
+    mostrarEstado($estadoPdfCompleto, 'El archivo tiene que ser un PDF.', 'error'); return;
+  }
+  if (archivo.size > MAX_MB_PDF * 1024 * 1024) {
+    mostrarEstado($estadoPdfCompleto, 'El PDF pesa más de ' + MAX_MB_PDF + ' MB. Comprimilo e intentá de nuevo.', 'error'); return;
+  }
+  if (pdfCompletoActual && !confirm('Este paciente ya tiene un PDF cargado. ¿Reemplazarlo por el nuevo?')) return;
+
+  $btnSubirPdfCompleto.disabled = true;
+  mostrarEstado($estadoPdfCompleto, 'Subiendo PDF, puede tardar unos segundos...', '');
+  try {
+    const pdfBase64 = await leerComoBase64(archivo);
+    const data = await apiPost({
+      action: 'subirPdfCompleto', token: sesion.token,
+      dni, nombre, apellido, empresa, pdfBase64, nombreArchivo: archivo.name
+    });
+    if (!data.ok) throw new Error(data.error || 'No se pudo subir el PDF');
+    estudiosActuales = data.estudios || estudiosActuales;
+    pdfCompletoActual = data.paciente ? data.paciente.pdfCompleto : null;
+    $pdfCompletoArchivo.value = '';
+    $btnEliminarPaciente.hidden = !sesion.esAdmin;
+    renderPdfCompleto();
+    mostrarEstado($estadoPdfCompleto, 'PDF guardado en la ficha del paciente.', 'ok');
+  } catch (err) {
+    mostrarEstado($estadoPdfCompleto, 'Error: ' + err.message, 'error');
+  } finally {
+    $btnSubirPdfCompleto.disabled = false;
+  }
+});
+
+async function descargarPdfCargado(estadoEl) {
+  const dni = $dni.value.trim();
+  if (!dni) return;
+  [$btnVerPdfCompleto, $btnDescargarPdfCargado].forEach(b => b.disabled = true);
+  mostrarEstado(estadoEl, 'Descargando PDF...', '');
+  try {
+    const data = await apiPost({ action: 'descargarPdfCompleto', token: sesion.token, dni });
+    if (!data.ok) throw new Error(data.error || 'No se pudo descargar');
+    descargarPdfBase64(data.pdfBase64, data.nombreArchivo);
+    mostrarEstado(estadoEl, 'PDF descargado.', 'ok');
+  } catch (err) {
+    mostrarEstado(estadoEl, 'Error: ' + err.message, 'error');
+  } finally {
+    [$btnVerPdfCompleto, $btnDescargarPdfCargado].forEach(b => b.disabled = false);
+  }
+}
+$btnVerPdfCompleto.addEventListener('click', () => descargarPdfCargado($estadoPdfCompleto));
+$btnDescargarPdfCargado.addEventListener('click', () => descargarPdfCargado($estadoPdf));
+
+$btnEliminarPdfCompleto.addEventListener('click', async () => {
+  const dni = $dni.value.trim();
+  if (!dni || !confirm('¿Quitar el PDF cargado de este paciente?')) return;
+  $btnEliminarPdfCompleto.disabled = true;
+  try {
+    const data = await apiPost({ action: 'eliminarPdfCompleto', token: sesion.token, dni });
+    if (!data.ok) throw new Error(data.error || 'No se pudo quitar');
+    pdfCompletoActual = data.paciente ? data.paciente.pdfCompleto : null;
+    renderPdfCompleto();
+    mostrarEstado($estadoPdfCompleto, 'PDF quitado.', 'ok');
+  } catch (err) {
+    mostrarEstado($estadoPdfCompleto, 'Error: ' + err.message, 'error');
+  } finally {
+    $btnEliminarPdfCompleto.disabled = false;
+  }
+});
 
 $btnGuardarPersonales.addEventListener('click', async () => {
   const dni = $dni.value.trim();
@@ -493,9 +685,12 @@ $btnGuardarPersonales.addEventListener('click', async () => {
       localidad: $localidad.value.trim(),
       provincia: $provincia.value.trim(),
       nacionalidad: $nacionalidad.value.trim(),
+      patologiasCronicas: patologiasActuales,
       fotoBase64
     });
     if (!data.ok) throw new Error(data.error || 'No se pudo guardar');
+    patologiasActuales = (data.paciente.patologiasCronicas || []).slice();
+    renderCronicas();
     $edad.value = (data.paciente.edad !== null && data.paciente.edad !== undefined) ? data.paciente.edad + ' años' : '';
     $btnEliminarPaciente.hidden = !sesion.esAdmin;
     nuevaFotoPaciente = null;
@@ -535,9 +730,13 @@ function limpiarFormularioPaciente() {
   $nombre.value = ''; $apellido.value = ''; $empresa.value = '';
   $fechaNacimiento.value = ''; $telefono.value = ''; $direccion.value = '';
   $localidad.value = ''; $provincia.value = ''; $nacionalidad.value = ''; $edad.value = '';
-  $datosNombre.hidden = true; $datosEmpresa.hidden = true; $datosPersonales.hidden = true;
+  $datosNombre.hidden = true; $datosEmpresa.hidden = true; $datosPersonales.hidden = true; $bloquePdfCompleto.hidden = true;
   $checklist.hidden = true; $cardServicio.hidden = true; $cardPdf.hidden = true;
   estudiosActuales = [];
+  patologiasActuales = []; pdfCompletoActual = null;
+  $cronicaInput.value = ''; $pdfCompletoArchivo.value = '';
+  renderCronicas(); renderPdfCompleto();
+  mostrarEstado($estadoPdfCompleto, '', '');
   nuevaFirmaProfesional = null; nuevaFirmaPaciente = null; nuevaFotoPaciente = null;
   $previewFirmaProfesional.innerHTML = ''; $previewFirmaPaciente.innerHTML = ''; $previewFotoPaciente.innerHTML = '';
   $fotoPaciente.value = '';
@@ -788,7 +987,8 @@ $btnGuardar.addEventListener('click', async () => {
       direccion: $direccion.value.trim(),
       localidad: $localidad.value.trim(),
       provincia: $provincia.value.trim(),
-      nacionalidad: $nacionalidad.value.trim()
+      nacionalidad: $nacionalidad.value.trim(),
+      patologiasCronicas: patologiasActuales
     });
     if (!data.ok) throw new Error(data.error || 'Error desconocido');
 
@@ -797,7 +997,7 @@ $btnGuardar.addEventListener('click', async () => {
       $edad.value = data.paciente.edad + ' años';
     }
     pintarChecklist();
-    $cardPdf.hidden = false;
+    actualizarVisibilidadCardPdf();
     mostrarEstado($estadoGuardar, 'Estudio de "' + (nombrePersonalizado || servicio) + '" guardado correctamente.', 'ok');
     cargarDatosServicioSeleccionado();
   } catch (err) {
@@ -832,7 +1032,8 @@ async function generarPdf(dni, cerrar) {
     const data = await apiPost({ action: cerrar ? 'cerrarFicha' : 'generarPDF', token: sesion.token, dni });
     if (!data.ok) throw new Error(data.error || 'Error desconocido');
     descargarPdfBase64(data.pdfBase64, data.nombreArchivo);
-    mostrarEstado($estadoPdf, cerrar ? 'Ficha cerrada y PDF descargado.' : 'PDF generado y descargado.', 'ok');
+    const origen = data.esPdfCargado ? 'PDF cargado descargado' : 'PDF generado y descargado';
+    mostrarEstado($estadoPdf, cerrar ? 'Ficha cerrada. ' + origen + '.' : origen + '.', 'ok');
     if (cerrar) mostrarEstado($estadoFicha, 'Ficha: Cerrada', 'error');
   } catch (err) {
     mostrarEstado($estadoPdf, 'Error: ' + err.message, 'error');
@@ -903,7 +1104,8 @@ function renderizarListaPacientes() {
     String(p.dni).toLowerCase().includes(filtro) ||
     String(p.nombre).toLowerCase().includes(filtro) ||
     String(p.apellido).toLowerCase().includes(filtro) ||
-    String(p.empresa).toLowerCase().includes(filtro)
+    String(p.empresa).toLowerCase().includes(filtro) ||
+    (p.patologiasCronicas || []).some(x => String(x).toLowerCase().includes(filtro))
   );
 
   if (filtrados.length === 0) {
@@ -925,12 +1127,17 @@ function filaPaciente(p) {
   }).join('');
 
   const edadTxt = (p.edad !== null && p.edad !== undefined) ? ' · ' + p.edad + ' años' : '';
+  const chipPdf = p.pdfCompleto ? '<span class="chip pdf-ok">PDF completo</span>' : '';
+  const cronicasHtml = (p.patologiasCronicas && p.patologiasCronicas.length)
+    ? `<div class="fp-cronicas"><span class="alerta-titulo" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:12.5px;color:var(--danger);">⚠ Crónicas:</span>${p.patologiasCronicas.map(n => `<span class="chip-cronica">${esc(n)}</span>`).join('')}</div>`
+    : '';
 
   div.innerHTML = `
     <div class="fp-datos">
       <div class="fp-nombre">${p.apellido}, ${p.nombre}${edadTxt} <span class="estado-pill ${p.estado === 'Cerrada' ? 'cerrada' : 'abierta'}">${p.estado}</span></div>
       <div class="fp-sub">DNI ${p.dni} · ${p.empresa} · Últ. estudio: ${formatearFecha(p.ultimaFechaEstudio)}</div>
-      <div class="fp-chips">${chips}</div>
+      ${cronicasHtml}
+      <div class="fp-chips">${chips}${chipPdf}</div>
     </div>
     <div class="fp-acciones">
       <button class="btn btn-secondary btn-small" data-abrir="${p.dni}">Abrir</button>
